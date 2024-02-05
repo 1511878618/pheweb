@@ -44,6 +44,8 @@ LocusZoom.Adapters.extend("AssociationLZ", "AssociationPheWeb", {
     }
 });
 
+
+
 LocusZoom.TransformationFunctions.add("percent", function(x) {
     if (x === 1) { return "100%"; }
     x = (x * 100).toPrecision(2);
@@ -55,16 +57,20 @@ LocusZoom.TransformationFunctions.add("percent", function(x) {
 (function() {
     // Define LocusZoom Data Sources object
     var localBase = window.model.urlprefix + "/api/region/" + window.pheno.phenocode + "/lz-";
+    var geneBase = window.model.urlprefix + "/api/gene/"
+    // var 
     var remoteBase = "https://portaldev.sph.umich.edu/api/v1/";
-    var data_sources = new LocusZoom.DataSources()
+    window.data_sources = new LocusZoom.DataSources()
         .add("assoc", ["AssociationPheWeb", {url: localBase }])
         .add("catalog", ["GwasCatalogLZ", {url: remoteBase + 'annotation/gwascatalog/results/', params: { build: "GRCh"+window.model.grch_build_number }}])
         .add("ld", ["LDServer", { url: "https://portaldev.sph.umich.edu/ld/",
             params: { source: '1000G', build: 'GRCh'+window.model.grch_build_number, population: 'ALL' }
         }])
-        .add("gene", ["GeneLZ", { url: remoteBase + "annotation/genes/", params: {build: 'GRCh'+window.model.grch_build_number} }])
-        .add("recomb", ["RecombLZ", { url: remoteBase + "annotation/recomb/results/", params: {build:'GRCh'+window.model.grch_build_number} }]);
-
+        // .add("gene", ["GeneLZ", { url: remoteBase + "annotation/genes/", params: {build: 'GRCh'+window.model.grch_build_number} }])
+        .add("gene", ["GeneLZ", {url:geneBase, build:'GRCh'+window.model.grch_build_number}])
+        .add("recomb", ["RecombLZ", { url: remoteBase + "annotation/recomb/results/", params: {build:'GRCh'+window.model.grch_build_number} }])
+        .add("constraint", ["GeneConstraintLZ", { url: "https://gnomad.broadinstitute.org/api/", build:'GRCh'+window.model.grch_build_number }]);
+    
     LocusZoom.TransformationFunctions.add("neglog10_or_323", function(x) {
         if (x === 0) return 323;
         return -Math.log(x) / Math.LN10;
@@ -109,7 +115,7 @@ LocusZoom.TransformationFunctions.add("percent", function(x) {
         width: 800,
         // height: 550,
         responsive_resize: true,
-        max_region_scale: 500e3,
+        max_region_scale: 500e4,
         toolbar: {
             widgets: [{
                 type: 'link',
@@ -318,20 +324,19 @@ LocusZoom.TransformationFunctions.add("percent", function(x) {
                         color: "blue"
                     }, LocusZoom.Layouts.get('toolbar_widgets', 'gene_selector_menu')]
                 },
-                data_layers: [
+                data_layers: [ 
                     LocusZoom.Layouts.get("data_layer", "genes_filtered", {
-                        unnamespaced: true,
-                        fields: ["{{namespace[gene]}}all"],
-                        tooltip: {
-                            html: ("<h4><strong><i>{{gene_name}}</i></strong></h4>" +
-                                   "<div>Gene ID: <strong>{{gene_id}}</strong></div>" +
-                                   "<div>Transcript ID: <strong>{{transcript_id}}</strong></div>" +
-                                   "<div style=\"clear: both;\"></div>" +
-                                   "<table width=\"100%\"><tr><td style=\"text-align: right;\"><a href=\"http://gnomad.broadinstitute.org/gene/{{gene_id}}\" target=\"_new\">More data on gnomAD/ExAC</a> and <a href=\"http://bravo.sph.umich.edu/freeze5/hg38/gene/{{gene_id}}\" target=\"_new\">Bravo</a></td></tr></table>")
-                        },
+                    unnamespaced: true,
+                    fields: ["{{namespace[gene]}}all"],
+                    tooltip: {
+                        html: ("<h4><strong><i>{{gene_name}}</i></strong></h4>" +
+                               "<div>Gene ID: <strong>{{gene_id}}</strong></div>" +
+                               "<div>Transcript ID: <strong>{{transcript_id}}</strong></div>" +
+                               "<div style=\"clear: both;\"></div>" +
+                               "<table width=\"100%\"><tr><td style=\"text-align: right;\"><a href=\"http://gnomad.broadinstitute.org/gene/{{gene_id}}\" target=\"_new\">More data on gnomAD/ExAC</a> and <a href=\"http://bravo.sph.umich.edu/freeze5/hg38/gene/{{gene_id}}\" target=\"_new\">Bravo</a></td></tr></table>")
+                    },
 
-                    })
-                ],
+                })],
             })
         ]
     });
@@ -340,7 +345,7 @@ LocusZoom.TransformationFunctions.add("percent", function(x) {
 
     $(function() {
         // Populate the div with a LocusZoom plot using the default layout
-        window.plot = LocusZoom.populate("#lz-1", data_sources, layout);
+        window.plot = LocusZoom.populate("#lz-1", window.data_sources, layout);
         window.plot.state.genome_build = 'GRCh'+window.model.grch_build_number;
 
         // Handle double-click on a variant point
@@ -360,3 +365,6 @@ LocusZoom.TransformationFunctions.add("percent", function(x) {
         })();
     });
 })();
+
+
+

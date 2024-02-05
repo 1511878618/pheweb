@@ -1,7 +1,21 @@
 
 from flask import url_for, Response, redirect
 
-from ..file_utils import MatrixReader, IndexedVariantFileReader, get_filepath
+try:
+    import pyBigWig 
+except ImportError:
+    import pip
+    pip.main(['install','pyBigWig'])
+    import pyBigWig
+
+try:
+    import tabix 
+except ImportError:
+    import pip
+    pip.main(['install','tabix'])
+    import tabix
+from ..file_utils import MatrixReader, IndexedVariantFileReader, get_filepath, get_generated_path, get_pheno_filepath
+
 
 import random
 import re
@@ -47,6 +61,107 @@ class _Get_Pheno_Region:
             'lastpage': None,
         }
 get_pheno_region = _Get_Pheno_Region.get_pheno_region
+
+
+
+def parse_region(region):
+    """
+    region:1:22-444
+    """
+    chr = region.split(":")[0]
+    start = region.split(":")[1].split("-")[0]
+    end = region.split(":")[1].split("-")[1]
+    return chr,start,end
+
+def read_tabix(filePath,region):
+    chr, start,end = parse_region(region)
+    tb = tabix.open(filePath)
+
+    try: # 尝试 2:1234-4567
+        query_region = f"{chr}:{start}-{end}"
+        records = tb.querys(query_region)
+    except Exception:
+        records = None 
+    if records is not None:
+        return list(records)
+    else:
+        return None
+def query_gene_to_json(region, filePath):
+    """
+    conditional tsv.gz have four cols: 
+    chr, start, end, json_str
+
+    will return json
+    """
+    res = read_tabix(filePath,region)
+    if res is not None:
+        res = [json.loads(i[3]) for i in res]
+    return res 
+def get_gene_region(chrom:str, pos_start:int, pos_end:int) -> dict:
+    res = query_gene_to_json(f"{chrom}:{pos_start}-{pos_end}", get_filepath("gencode"))
+
+    return {
+        'data': res,
+        'lastpage': None,
+    }
+def query_conditional_to_json(region,phenocode=None):
+    """
+    read_tabix will return a list of tuple:[chr, start, end, condTime, filePath]
+    """
+    filePath = get_filepath("topLociCond")
+    res = read_tabix(filePath,region)
+    if res is not None:
+        if phenocode is not None:
+            phenocode = phenocode.lower()
+            res = [ {"chr":i[0], "start":i[1], "end":i[2],"phenocode":i[3],"condTime":i[4], "filePath": i[5]} for i in res if i[3] == phenocode]
+        else:
+            res = [ {"chr":i[0], "start":i[1], "end":i[2],"phenocode":i[3],"condTime":i[4], "filePath": i[5]} for i in res]
+    return {"data":res} 
+def query_cond_file(region,fileName):
+    filePath = get_generated_path("resources/topLociCond/")+fileName
+    # return filePath
+    try:
+        res = read_tabix(filePath,region)
+    # format 
+    except:
+        return {"error":filePath}
+    chr, start,end = parse_region(region)
+    tb = tabix.open(filePath)
+
+    try: # 尝试 2:1234-4567
+        query_region = f"{chr}:{start}-{end}"
+        records = tb.querys(query_region)
+    except Exception:
+        return {"data":None}
+    if records is not None:
+        # 满足lz.js 1.13.0 的读取要求，避免更改js代码
+        res = {
+            "af":[],
+            "alt":[],
+            "beta":[],
+            "chr":[],
+            "end":[],
+            "id":[],
+            "position":[],
+            "pvalue":[],
+            "ref":[],
+            "rsid":[],
+            "sebeta":[],
+               }
+        for record in records:    
+            res["af"].append(float(record[5]))
+            res["alt"].append(record[3])
+            res["beta"].append(float(record[6]))
+            res["chr"].append(record[0])
+            res["end"].append(record[1])
+            res["id"].append(f"{record[0]}:{record[1]}_{record[2]}/{record[3]}")
+            res["position"].append(record[1])
+            res["pvalue"].append(float(record[4]))
+            res["ref"].append(record[2])
+            res["rsid"].append(None) 
+            res["sebeta"].append(float(record[7]))
+    return {"data":res}
+
 
 
 class _ParseVariant:

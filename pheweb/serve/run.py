@@ -133,7 +133,7 @@ def run(argv:List[str]) -> None:
     import gevent.monkey
     gevent.monkey.patch_all() # this must happen before `import requests`.
     from .server import app
-    if gunicorn_is_broken():
-        run_flask_dev_server(app, args)
-    else:
-        run_gunicorn(app, args)
+    # if gunicorn_is_broken():
+    run_flask_dev_server(app, args)
+    # else:
+        # run_gunicorn(app, args)

@@ -56,6 +56,7 @@ sRNA
 TEC
 vaultRNA
 vault_RNA
+artifact
 '''.split()).union(good_genetypes)
 
 def get_all_genes(gencode_filepath:str) -> Iterator[Dict[str,Any]]:
@@ -113,6 +114,8 @@ def get_good_genes(gencode_filepath:str) -> Iterator[Dict[str,Any]]:
             unseen_bad_genetypes = {gt for gt in bad_genetypes if genetype_counts[gt] == 0}
             error_msg = ('Error: Unrecognized gene_types were seen in Gencode:\n' +
                          ''.join('   {:5} {}\n'.format(count, gt) for gt,count in unknown_genetype_counts.items()))
+            error_msg += ("New unknown gene_type were:\n" + 
+                             ''.join('   {}\n'.format(gt) for gt in unknown_genetype_counts))
             if unseen_good_genetypes:
                 error_msg += ('Unseen good gene_types were:\n' +
                               ''.join('   {}\n'.format(gt) for gt in unseen_good_genetypes))

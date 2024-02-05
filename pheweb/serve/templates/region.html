@@ -15,6 +15,10 @@
 <link  href="{{ url_for('.static', filename='region.css') }}" rel="stylesheet" type="text/css">
 {% endblock %}
 
+{% if show_cond %}
+<script src="{{url_for('.static', filename="listCond.js")}}"></script>
+
+{% endif %}
 
 {% block contained %}
 {% for key in ['num_cases', 'num_controls', 'num_samples'] %}
@@ -31,6 +35,30 @@
     <h1 style="margin-top:0">{% include "region/h1.html" %}</h1>
   </div>
 </div>
+{% if should_cond %}
+<div class="container">
+    <h1>Interactive Table</h1>
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Select</th>
+                <th scope="col">Chr</th>
+                <th scope="col">Start</th>
+                <th scope="col">End</th>
+                <th scope="col">Phenocode</th>
+                <th scope="col">Cond Time</th>
+                <th scope="col">File Path</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- 表格内容将通过 JavaScript 填充 -->
+        </tbody>
+    </table>
+    <button id="submitBtn" class="btn btn-primary">Submit Selected</button>
+</div>
+{% endif %}
+
+
 <div class="row">
     <div class="pheno-info col-xs-12">
         {% if 'num_cases' in pheno %}
@@ -49,4 +77,6 @@
     <div id="lz-1" class="lz-container-responsive" data-region={{ region }}></div>
   </div>
 </div>
+
+
 {% endblock %}
